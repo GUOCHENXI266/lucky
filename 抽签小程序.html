@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 幸运抽签器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .background-emoji {
+            position: fixed;
+            font-size: 40px;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        /* 标签页 */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            color: #888;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 转盘模式 */
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 30px;
+        }
+
+        #wheel {
+            width: 100%;
+            height: auto;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            z-index: 10;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff6b6b;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            z-index: 11;
+        }
+
+        .result-display {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-display.active {
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .result-emoji {
+            font-size: 60px;
+            margin-bottom: 10px;
+            animation: bounce 0.6s ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .result-text {
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-placeholder {
+            font-size: 18px;
+            opacity: 0.8;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 18px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .spin-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            font-size: 24px;
+            padding: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .options-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], input[type="number"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-button {
+            background: #4CAF50;
+            padding: 12px 24px;
+            flex: none;
+        }
+
+        .options-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .option-tag {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .remove-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+        }
+
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .preset-btn {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        /* 分组模式 */
+        .group-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .group-controls label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .group-controls input {
+            width: 100px;
+        }
+
+        .teams-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .team-card {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .team-header {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .team-members {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .member-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-section {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 8px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 32px;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .teams-display {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-emoji" style="top: 10%; left: 10%;">🎲</div>
+    <div class="background-emoji" style="top: 20%; right: 15%; animation-delay: 1s;">🎰</div>
+    <div class="background-emoji" style="bottom: 15%; left: 20%; animation-delay: 2s;">🎯</div>
+    <div class="background-emoji" style="bottom: 25%; right: 10%; animation-delay: 1.5s;">✨</div>
+
+    <div class="container">
+        <h1>🎰 幸运抽签器</h1>
+        <p class="subtitle">午饭吃什么？如何分组？让命运来决定！</p>
+
+        <!-- 标签页 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('wheel')">🎡 转盘抽签</button>
+            <button class="tab" onclick="switchTab('group')">👥 随机分组</button>
+        </div>
+
+        <!-- 转盘抽签模式 -->
+        <div id="wheelMode" class="tab-content active">
+            <div class="wheel-container">
+                <div class="pointer"></div>
+                <canvas id="wheel" width="400" height="400"></canvas>
+                <div class="wheel-center">🎯</div>
+            </div>
+
+            <div class="result-display" id="resultDisplay">
+                <div class="result-placeholder">👆 点击开始抽签</div>
+            </div>
+
+            <button class="spin-button" onclick="spin()" id="spinBtn">🎲 开始抽签</button>
+
+            <div class="options-section">
+                <div class="section-title">📝 自定义选项</div>
+                <div class="input-group">
+                    <input type="text" id="optionInput" placeholder="输入选项，比如：麦当劳" onkeypress="if(event.key==='Enter') addOption()">
+                    <button class="add-button" onclick="addOption()">➕ 添加</button>
+                </div>
+                <div class="options-list" id="optionsList"></div>
+            </div>
+
+            <div class="options-section">
+                <div class="section-title">🍱 快速模板</div>
+                <div class="presets">
+                    <button class="preset-btn" onclick="loadPreset('lunch')">午饭</button>
+                    <button class="preset-btn" onclick="loadPreset('drink')">喝什么</button>
+                    <button class="preset-btn" onclick="loadPreset('yesno')">是否</button>
+                    <button class="preset-btn" onclick="loadPreset('weekend')">周末活动</button>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <div class="section-title">📜 抽签历史</div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+
+        <!-- 随机分组模式 -->
+        <div id="groupMode" class="tab-content">
+            <div class="options-section">
+                <div class="section-title">👥 添加成员/小组</div>
+                <div class="input-group">
+                    <input type="text" id="memberInput" placeholder="输入成员名称，比如：张三 或 第1组" onkeypress="if(event.key==='Enter') addMember()">
+                    <button class="add-button" onclick="addMember()">➕ 添加</button>
+                </div>
+                <div class="options-list" id="membersList"></div>
+            </div>
+
+            <div class="options-section">
+                <div class="section-title">⚙️ 分组设置</div>
+                <div class="group-controls">
+                    <label>分成</label>
+                    <input type="number" id="teamCount" value="4" min="2" max="10">
+                    <label>个队伍</label>
+                    <button style="flex: 1;" onclick="randomGroup()">🎲 随机分组</button>
+                    <button style="flex: 1;" onclick="clearGroups()">🔄 清空结果</button>
+                </div>
+            </div>
+
+            <div id="teamsDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        // 转盘模式数据
+        let options = ['麦当劳', '肯德基', '沙县小吃', '黄焖鸡', '兰州拉面'];
+        let spinning = false;
+        let history = [];
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+
+        // 分组模式数据
+        let members = [];
+        let teams = [];
+
+        const presets = {
+            lunch: ['麦当劳', '肯德基', '沙县小吃', '黄焖鸡', '兰州拉面', '米线', '盖饭', '外卖'],
+            drink: ['奶茶', '咖啡', '果汁', '可乐', '奶盖', '柠檬水', '热巧克力', '矿泉水'],
+            yesno: ['去！', '不去', '再想想', '听天由命'],
+            weekend: ['看电影', '逛街', '健身', '睡觉', '玩游戏', '郊游', '宅家', '聚餐']
+        };
+
+        // 标签页切换
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tab === 'wheel') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('wheelMode').classList.add('active');
+                drawWheel();
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('groupMode').classList.add('active');
+            }
+        }
+
+        // 转盘模式函数
+        function loadPreset(type) {
+            options = [...presets[type]];
+            updateOptionsDisplay();
+            drawWheel();
+        }
+
+        function addOption() {
+            const input = document.getElementById('optionInput');
+            const value = input.value.trim();
+            if (value && !options.includes(value)) {
+                options.push(value);
+                input.value = '';
+                updateOptionsDisplay();
+                drawWheel();
+            }
+        }
+
+        function removeOption(index) {
+            if (options.length > 2) {
+                options.splice(index, 1);
+                updateOptionsDisplay();
+                drawWheel();
+            } else {
+                alert('至少保留2个选项！');
+            }
+        }
+
+        function updateOptionsDisplay() {
+            const list = document.getElementById('optionsList');
+            list.innerHTML = options.map((opt, i) => `
+                <div class="option-tag">
+                    <span>${opt}</span>
+                    <button class="remove-btn" onclick="removeOption(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 180;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const anglePerOption = (2 * Math.PI) / options.length;
+
+            options.forEach((option, i) => {
+                const startAngle = i * anglePerOption - Math.PI / 2;
+                const endAngle = startAngle + anglePerOption;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + anglePerOption / 2);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText(option, radius * 0.65, 0);
+                ctx.restore();
+            });
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 5, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+        }
+
+        function spin() {
+            if (spinning || options.length < 2) return;
+
+            spinning = true;
+            document.getElementById('spinBtn').disabled = true;
+
+            const spins = 5 + Math.random() * 5;
+            const extraDegrees = Math.random() * 360;
+            const totalRotation = spins * 360 + extraDegrees;
+
+            canvas.style.transform = `rotate(${totalRotation}deg)`;
+
+            const normalizedRotation = (360 - (totalRotation % 360)) % 360;
+            const anglePerOption = 360 / options.length;
+            const selectedIndex = Math.floor(normalizedRotation / anglePerOption);
+            const result = options[selectedIndex];
+
+            setTimeout(() => {
+                showResult(result);
+                addToHistory(result);
+                spinning = false;
+                document.getElementById('spinBtn').disabled = false;
+            }, 4000);
+        }
+
+        function showResult(result) {
+            const display = document.getElementById('resultDisplay');
+            const emojis = ['🎉', '✨', '🎊', '🌟', '💫', '🎯', '🏆'];
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+            display.innerHTML = `
+                <div class="result-emoji">${emoji}</div>
+                <div class="result-text">${result}</div>
+            `;
+            display.classList.add('active');
+            setTimeout(() => display.classList.remove('active'), 1000);
+
+            createConfetti();
+        }
+
+        function createConfetti() {
+            const confettiCount = 50;
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.left = '50%';
+                confetti.style.top = '50%';
+                confetti.style.width = '10px';
+                confetti.style.height = '10px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.borderRadius = '50%';
+                confetti.style.pointerEvents = 'none';
+                confetti.style.zIndex = '9999';
+                document.body.appendChild(confetti);
+
+                const angle = (Math.PI * 2 * i) / confettiCount;
+                const velocity = 5 + Math.random() * 5;
+                const vx = Math.cos(angle) * velocity;
+                const vy = Math.sin(angle) * velocity;
+
+                let x = 0, y = 0, opacity = 1;
+                const animate = () => {
+                    x += vx;
+                    y += vy + 2;
+                    opacity -= 0.02;
+                    confetti.style.transform = `translate(${x}px, ${y}px)`;
+                    confetti.style.opacity = opacity;
+
+                    if (opacity > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        confetti.remove();
+                    }
+                };
+                animate();
+            }
+        }
+
+        function addToHistory(result) {
+            const now = new Date();
+            const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            history.unshift({ result, time });
+            if (history.length > 10) history.pop();
+            updateHistory();
+        }
+
+        function updateHistory() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#888;">暂无记录</div>';
+            } else {
+                list.innerHTML = history.map(h => `
+                    <div class="history-item">
+                        <span>${h.result}</span>
+                        <span>${h.time}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 分组模式函数
+        function addMember() {
+            const input = document.getElementById('memberInput');
+            const value = input.value.trim();
+            if (value && !members.includes(value)) {
+                members.push(value);
+                input.value = '';
+                updateMembersDisplay();
+            }
+        }
+
+        function removeMember(index) {
+            members.splice(index, 1);
+            updateMembersDisplay();
+        }
+
+        function updateMembersDisplay() {
+            const list = document.getElementById('membersList');
+            list.innerHTML = members.map((member, i) => `
+                <div class="option-tag">
+                    <span>${member}</span>
+                    <button class="remove-btn" onclick="removeMember(${i})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function randomGroup() {
+            const teamCount = parseInt(document.getElementById('teamCount').value);
+
+            if (members.length < teamCount) {
+                alert(`至少需要 ${teamCount} 个成员才能分成 ${teamCount} 个队伍！`);
+                return;
+            }
+
+            // 打乱成员顺序
+            const shuffled = [...members].sort(() => Math.random() - 0.5);
+
+            // 初始化队伍
+            teams = Array.from({ length: teamCount }, () => []);
+
+            // 平均分配
+            shuffled.forEach((member, i) => {
+                teams[i % teamCount].push(member);
+            });
+
+            displayTeams();
+        }
+
+        function displayTeams() {
+            const display = document.getElementById('teamsDisplay');
+            const teamNames = ['🔴 红队', '🔵 蓝队', '🟢 绿队', '🟡 黄队', '🟣 紫队', '🟠 橙队', '⚪ 白队', '⚫ 黑队', '🟤 棕队', '🔷 青队'];
+
+            display.innerHTML = `
+                <div class="section-title" style="grid-column: 1/-1; margin-bottom: 10px;">🎊 分组结果</div>
+                ${teams.map((team, i) => `
+                    <div class="team-card">
+                        <div class="team-header">
+                            ${teamNames[i] || `队伍 ${i + 1}`}
+                            <span style="font-size: 14px; color: #888;">(${team.length}人)</span>
+                        </div>
+                        <div class="team-members">
+                            ${team.map((member, j) => `
+                                <div class="member-item">${j + 1}. ${member}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function clearGroups() {
+            teams = [];
+            document.getElementById('teamsDisplay').innerHTML = '';
+        }
+
+        // 初始化
+        updateOptionsDisplay();
+        drawWheel();
+        updateHistory();
+    </script>
+</body>
+</html>
